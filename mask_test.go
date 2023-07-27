@@ -9,7 +9,10 @@ package websocket
 import (
 	"fmt"
 	"testing"
+	"unsafe"
 )
+
+const wordSize = int(unsafe.Sizeof(uintptr(0)))
 
 func maskBytesByByte(key [4]byte, pos int, b []byte) int {
 	for i := range b {
@@ -34,10 +37,13 @@ func TestMaskBytes(t *testing.T) {
 		for align := 0; align < wordSize; align++ {
 			for pos := 0; pos < 4; pos++ {
 				b := make([]byte, size+align)[align:]
-				maskBytes(key, pos, b)
-				maskBytesByByte(key, pos, b)
+				posWord := MaskBytes(key, pos, b)
+				posByte := maskBytesByByte(key, pos, b)
 				if i := notzero(b); i >= 0 {
 					t.Errorf("size:%d, align:%d, pos:%d, offset:%d", size, align, pos, i)
+				}
+				if posWord != posByte {
+					t.Errorf("size:%d, align:%d, pos_byte:%d, pos_word:%d", size, align, posByte, posWord)
 				}
 			}
 		}
@@ -54,7 +60,7 @@ func BenchmarkMaskBytes(b *testing.B) {
 						fn   func(key [4]byte, pos int, b []byte) int
 					}{
 						{"byte", maskBytesByByte},
-						{"word", maskBytes},
+						{"word", MaskBytes},
 					} {
 						b.Run(fn.name, func(b *testing.B) {
 							key := newMaskKey()

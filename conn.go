@@ -433,7 +433,7 @@ func (c *Conn) WriteControl(messageType int, data []byte, deadline time.Time) er
 		key := newMaskKey()
 		buf = append(buf, key[:]...)
 		buf = append(buf, data...)
-		maskBytes(key, 0, buf[6:])
+		MaskBytes(key, 0, buf[6:])
 	}
 
 	d := 1000 * time.Hour
@@ -603,7 +603,7 @@ func (w *messageWriter) flushFrame(final bool, extra []byte) error {
 	if !c.isServer {
 		key := newMaskKey()
 		copy(c.writeBuf[maxFrameHeaderSize-4:], key[:])
-		maskBytes(key, 0, c.writeBuf[maxFrameHeaderSize:w.pos])
+		MaskBytes(key, 0, c.writeBuf[maxFrameHeaderSize:w.pos])
 		if len(extra) > 0 {
 			return w.endMessage(c.writeFatal(errors.New("websocket: internal error, extra used in client mode")))
 		}
@@ -939,7 +939,7 @@ func (c *Conn) advanceFrame() (int, error) {
 			return noFrame, err
 		}
 		if c.isServer {
-			maskBytes(c.readMaskKey, 0, payload)
+			MaskBytes(c.readMaskKey, 0, payload)
 		}
 	}
 
@@ -1050,7 +1050,7 @@ func (r *messageReader) Read(b []byte) (int, error) {
 			n, err := c.br.Read(b)
 			c.readErr = hideTempErr(err)
 			if c.isServer {
-				c.readMaskPos = maskBytes(c.readMaskKey, c.readMaskPos, b[:n])
+				c.readMaskPos = MaskBytes(c.readMaskKey, c.readMaskPos, b[:n])
 			}
 			rem := c.readRemaining
 			rem -= int64(n)
